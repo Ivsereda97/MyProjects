@@ -1,0 +1,36 @@
+@startuml deploy
+'Описываем БД keycloak (pg), которая будет использоваться как источник авторизации
+package "БД keycloak" {
+database "Keycloak_pgDB" as keycloackAuth
+}
+'Описываем пространство сервиса уведомлений notificationManager
+package "notificationManager" {
+database "prodDB(pg)" as prodDB
+component "pushService" as Push
+component "supersetAdapter" as adapter
+component "notificationProcessor" as mainProcessor
+component "smtpService" as smtpService
+component "authService" as auth
+}
+'Описываем базу данных целевой системы Superset
+package "Superset" {
+database "SupersetDB"
+}
+'Описываем SMTP сервер для обмена E-mail уведомлениями
+package "SMTP Server" {
+component "Агент передачи почты" as smtpAgent
+}
+'описываем основное взаимодействие
+actor User as ourUser
+ourUser --> mainProcessor : запрос на получение уведомления \n об отчёте
+mainProcessor --> auth : POST /checkUser
+auth --> keycloackAuth : проверка авторизации и наличия \n роли получателя отчётов
+adapter --> "SupersetDB" : отправка запросов на \n получение отчетов \n по расписанию
+adapter --> prodDB : сохранение \n отчётов в БД
+mainProcessor --> prodDB : получение отчёта по \n данным пользователя
+mainProcessor --> smtpService : инициализация \n регистрации E-mail \n уведомления
+smtpService --> smtpAgent : обращение к SMTP-серверу для \n отправки e-mail
+smtpAgent --> ourUser :получения E-mail\n уведомления
+mainProcessor --> Push : инициализация регистрации Push-уведомления
+Push -u-> ourUser : получение \n Push-уведомления
+@enduml

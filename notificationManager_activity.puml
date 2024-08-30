@@ -1,0 +1,46 @@
+@startuml
+|Пользователь|
+start
+:Пользователь запросил получение отчёта в Superset;
+group <b>1. Проверка авторизации и роли пользователя </b>;
+:Сервис notificationProcessor отправляет в authService данные клиента для проверки;
+if (Пользователь успешно авторизован?) then (401 Unauthorized)
+:Отправка клиенту ошибку авторизации;
+stop;
+else (да)
+endif
+end group
+
+|Система|
+group <b>2. получение параметров отчета для пользователя;
+:supersetAdapter опрашивает БД Superset и \n загружает отчеты в ProdDB;
+:notificationProcessor отправляет запрос в prodDB согласно входным данным;
+end group;
+|Пользователь|
+group <b>3. Проверка на тип уведомления E-mail
+if (У пользователя выбрано получение уведомления на Email?) then (регистрация e-mail)
+|Система|
+:notificationProcessor регистрирует заявку в SMTP-service;
+:SMTP-service обращается к SMTP-серверу для отправки E-mail;
+|Пользователь|
+:получение E-mail уведомления;
+stop
+else (проверка на Push уведомление)
+endif;
+end group;
+|Пользователь|
+group <b>4. Проверка на тип уведомления Push
+if (У пользователя выбрано получение Push?) then (регистрация push)
+|Система|
+:notificationProcessor регистрирует заявку в PushService;
+:pushService отправляет Push-уведомление;
+|Пользователь|
+:получение push уведомления;
+|Пользователь|
+:Получение Push-уведомления пользователем;
+end if;
+end group;
+
+stop
+
+@enduml
